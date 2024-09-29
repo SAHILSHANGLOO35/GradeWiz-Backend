@@ -1,81 +1,40 @@
 const { Router } = require("express");
 const adminRouter = Router();
-const { AdminModel } = require("../db")
-const bcrypt = require("bcrypt")
-const jwt = require("jsonwebtoken")
-const JWT_SECRET = "143secretKEY"
+const { AdminModel } = require("../db");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const JWT_SECRET = process.env.JWT_SECRET || "143secretKEY"; // Use environment variable
 
-adminRouter.post("/signup", async function(req, res){
+adminRouter.post("/signup", async (req, res) => {
     const { name, email, password } = req.body;
-    
+
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
-
-        await AdminModel.create({
-            name,
-            email, 
-            password: hashedPassword
-        })
-        res.json({
-            message: "Signed Up successfully!"
-        })
-
+        await AdminModel.create({ name, email, password: hashedPassword, isAdmin: true }); // Assuming all admins are isAdmin: true
+        res.status(201).json({ message: "Signed up successfully!" });
     } catch (error) {
-        res.json({
-            message: `ERROR: ${error}`
-        })
+        res.status(400).json({ message: `ERROR: ${error.message}` });
     }
-})
+});
 
-adminRouter.post("/signin", async function(req, res){
+adminRouter.post("/signin", async (req, res) => {
     const { email, password } = req.body;
 
-    const admin = await AdminModel.findOne({
-        email : email
-    })
+    const admin = await AdminModel.findOne({ email });
 
     if (!admin) {
-        res.json({
-            message: "Admin not found"
-        })
-        return
+        return res.status(404).json({ message: "Admin not found" });
     }
 
-    const passwordMatch = await bcrypt.compare(password, admin.password)
+    const passwordMatch = await bcrypt.compare(password, admin.password);
 
     if (passwordMatch) {
-        const token = jwt.sign({
-            id: admin._id
-        }, JWT_SECRET)
-        res.json({
-            token: token
-        })
+        // Create a non-expiring token with isAdmin
+        const token = jwt.sign({ id: admin._id, isAdmin: admin.isAdmin }, JWT_SECRET);
+        res.json({ token, isAdmin: admin.isAdmin }); // Send isAdmin in the response if needed
+    } else {
+        res.status(403).json({ message: "Incorrect credentials!" });
     }
-    else {
-        res.status(403).json({
-            message: "Incorrect credentials!"
-        })
-    }
-})
+});
 
-adminRouter.post("/create-test", function(req, res){
-
-})
-
-adminRouter.post("/delete-test", function(req, res){
-
-})
-
-adminRouter.put("/test", function(req, res){
-
-})
-
-adminRouter.get("/test/bulk", function(req, res){
-    res.json({
-        message: "All tests"
-    })
-})
-
-module.exports = {
-    adminRouter: adminRouter
-}
+module.exports = { adminRouter };
