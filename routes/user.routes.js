@@ -1,9 +1,8 @@
 const { Router } = require("express");
 const userRouter = Router();
-const { UserModel } = require("../db")
+const { UserModel } = require("../db/db")
 const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
-const JWT_SECRET = "secret143"
 
 
 userRouter.post("/signup", async function(req, res){
@@ -18,7 +17,7 @@ userRouter.post("/signup", async function(req, res){
             rollNo, 
             email, 
             password: hashedPassword, 
-            branch, 
+            branch,
             mobile, 
             year
         })
@@ -33,36 +32,41 @@ userRouter.post("/signup", async function(req, res){
     }
 })
 
-userRouter.post("/signin", async function(req, res){
+userRouter.post("/signin", async function(req, res) {
     const { email, password } = req.body;
 
-    const user = await UserModel.findOne({
-        email : email
-    })
+    // First search in AdminModel
+    let user = await AdminModel.findOne({ email: email });
 
+    // If not found in AdminModel, search in UserModel
     if (!user) {
-        res.json({
-            message: "User not found"
-        })
-        return
+        user = await UserModel.findOne({ email: email });
+
+        // If not found in both models, return "Please signup first"
+        if (!user) {
+            return res.json({
+                message: "Please signup first"
+            });
+        }
     }
 
-    const passwordMatch = await bcrypt.compare(password, user.password)
+    // Compare password
+    const passwordMatch = await bcrypt.compare(password, user.password);
 
     if (passwordMatch) {
         const token = jwt.sign({
             id: user._id
-        }, JWT_SECRET)
+        }, process.env.JWT_SECRET);
+
         res.json({
             token: token
-        })
-    }
-    else {
+        });
+    } else {
         res.status(403).json({
             message: "Incorrect credentials!"
-        })
+        });
     }
-})
+});
 
 module.exports = {
     userRouter: userRouter

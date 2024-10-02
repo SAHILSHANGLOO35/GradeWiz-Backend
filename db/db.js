@@ -48,10 +48,15 @@ const adminSchema = new mongoose.Schema({
     }
 });
 
+// const testSchema = new mongoose.Schema({
+
+// })
+
 const UserModel = mongoose.model("User", userSchema)
 const AdminModel = mongoose.model("Admin", adminSchema)
+// const TestModel = mongoose.model("Test", testSchema)
 
 module.exports = {
     UserModel: UserModel,
-    AdminModel: AdminModel
+    AdminModel: AdminModel,
 }

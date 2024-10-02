@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
@@ -11,9 +12,9 @@ app.use("/api/v1/admin", adminRouter)
 
 
 async function main() {
-    await mongoose.connect("mongodb+srv://sahilshangloo35:root@cluster0.ulniw.mongodb.net/GradeWiz")
-    app.listen(8000, () => {
-        console.log("SERVER STARTED");
+    await mongoose.connect(process.env.MONGODB_URI)
+    app.listen(process.env.PORT, () => {
+        console.log(`SERVER STARTED AT PORT ${process.env.PORT}`);
     })
 }
 

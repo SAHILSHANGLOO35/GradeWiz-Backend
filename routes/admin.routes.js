@@ -1,9 +1,8 @@
 const { Router } = require("express");
 const adminRouter = Router();
-const { AdminModel } = require("../db")
+const { AdminModel } = require("../db/db")
 const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
-const JWT_SECRET = "143secretKEY"
 
 adminRouter.post("/signup", async function(req, res){
     const { name, email, password } = req.body;
@@ -23,37 +22,6 @@ adminRouter.post("/signup", async function(req, res){
     } catch (error) {
         res.json({
             message: `ERROR: ${error}`
-        })
-    }
-})
-
-adminRouter.post("/signin", async function(req, res){
-    const { email, password } = req.body;
-
-    const admin = await AdminModel.findOne({
-        email : email
-    })
-
-    if (!admin) {
-        res.json({
-            message: "Admin not found"
-        })
-        return
-    }
-
-    const passwordMatch = await bcrypt.compare(password, admin.password)
-
-    if (passwordMatch) {
-        const token = jwt.sign({
-            id: admin._id
-        }, JWT_SECRET)
-        res.json({
-            token: token
-        })
-    }
-    else {
-        res.status(403).json({
-            message: "Incorrect credentials!"
         })
     }
 })
