@@ -4,14 +4,11 @@ const { UserModel } = require("../db/db")
 const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
 
-
-userRouter.post("/signup", async function(req, res){
+userRouter.post("/signup", async (req, res) => {
     const { name, rollNo, email, password, branch, mobile, year } = req.body;
-    
-    try {
-        const hashedPassword = await bcrypt.hash(password, 10)
-        console.log(hashedPassword);
 
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
         await UserModel.create({
             name, 
             rollNo, 
@@ -20,17 +17,12 @@ userRouter.post("/signup", async function(req, res){
             branch,
             mobile, 
             year
-        })
-        res.json({
-            message: "Signed Up successfully!"
-        })
-
+        });
+        res.status(201).json({ message: "Signed up successfully!" });
     } catch (error) {
-        res.json({
-            message: `ERROR: ${error}`
-        })
+        res.status(400).json({ message: `ERROR: ${error.message}` });
     }
-})
+});
 
 userRouter.post("/signin", async function(req, res) {
     const { email, password } = req.body;
@@ -68,6 +60,4 @@ userRouter.post("/signin", async function(req, res) {
     }
 });
 
-module.exports = {
-    userRouter: userRouter
-}
+module.exports = { userRouter };
