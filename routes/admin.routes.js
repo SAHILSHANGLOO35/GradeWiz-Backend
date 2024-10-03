@@ -1,7 +1,7 @@
-const { Router } = require("express");
+import { Router } from "express";
 const adminRouter = Router();
-const { AdminModel } = require("../db/db")
-const bcrypt = require("bcrypt")
+import {AdminModel} from "../db/db.js"
+import bcrypt from "bcrypt"
 
 adminRouter.post("/signup", async (req, res) => {
     const { name, email, password } = req.body;
@@ -33,4 +33,4 @@ adminRouter.post("/signup", async (req, res) => {
 //     })
 // })
 
-module.exports = adminRouter;
+export default adminRouter

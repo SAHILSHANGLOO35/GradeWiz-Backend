@@ -1,6 +1,6 @@
-const mongoose = require("mongoose")
+import mongoose from 'mongoose'
 
-const userSchema = new mongoose.Schema({
+export const userSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
@@ -32,7 +32,7 @@ const userSchema = new mongoose.Schema({
     }
 })
 
-const adminSchema = new mongoose.Schema({
+export const adminSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true
@@ -48,7 +48,7 @@ const adminSchema = new mongoose.Schema({
     }
 });
 
-const teamSchema = new mongoose.Schema({
+export const teamSchema = new mongoose.Schema({
     teamName: {
         type: String,
         required: true,
@@ -77,12 +77,7 @@ const teamSchema = new mongoose.Schema({
     },
 })
 
-const UserModel = mongoose.model("User", userSchema)
-const AdminModel = mongoose.model("Admin", adminSchema)
-const TeamModel = mongoose.model("Team", teamSchema)
+export const UserModel = mongoose.model("User", userSchema);
+export const AdminModel = mongoose.model("Admin", adminSchema);
+export const TeamModel = mongoose.model("Team", teamSchema);
 
-module.exports = {
-    UserModel: UserModel,
-    AdminModel: AdminModel,
-    TeamModel: TeamModel
-}

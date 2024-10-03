@@ -1,11 +1,11 @@
-require("dotenv").config();
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const { userRouter } = require("./routes/user.routes");
-const { adminRouter } = require("./routes/admin.routes");
-const { teamRouter } = require("./routes/createTeam.routes");
-const { joinTeamRouter } = require("./routes/joinTeam.routes");
+import 'dotenv/config';
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import userRouter from './routes/user.routes.js';
+import adminRouter from './routes/admin.routes.js';
+import teamRouter from './routes/createTeam.routes.js';
+import joinTeamRouter from './routes/joinTeam.routes.js';
 
 const app = express();
 

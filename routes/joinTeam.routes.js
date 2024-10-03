@@ -1,7 +1,7 @@
-const { Router } = require("express");
+import { Router } from "express";
 const joinTeamRouter = Router();
-const { TeamModel } = require("../db/db");
-const verifyToken = require("../middlewares/auth.middlewares");
+import { TeamModel } from "../db/db.js";
+import { verifyToken } from "../middlewares/auth.middlewares.js";
 
 joinTeamRouter.post("/", verifyToken, async  (req, res) => {
     try {
@@ -52,4 +52,4 @@ joinTeamRouter.post("/", verifyToken, async  (req, res) => {
     }
 })
 
-module.exports = joinTeamRouter;
+export default joinTeamRouter

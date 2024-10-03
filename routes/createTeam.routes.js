@@ -1,7 +1,10 @@
-const { Router } = require("express");
+import { Router } from "express";
 const teamRouter = Router();
-const { TeamModel } = require("../db/db")
-const { verifyToken } = require("../middlewares/auth.middlewares")
+import { TeamModel } from "../db/db.js";
+import { verifyToken } from "../middlewares/auth.middlewares.js";
+
+console.log("Verify Token Middleware: ", verifyToken); // Add this line to debug
+
 
 const generateUniqueCode = async () => {
     let code;
@@ -49,4 +52,4 @@ teamRouter.post("/create", verifyToken, async (req, res) => {
     }
 })
 
-module.exports = teamRouter;
+export default teamRouter
