@@ -48,15 +48,41 @@ const adminSchema = new mongoose.Schema({
     }
 });
 
-// const testSchema = new mongoose.Schema({
-
-// })
+const teamSchema = new mongoose.Schema({
+    teamName: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    description: {
+        type: String,
+    },
+    teamMembers: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+    }],
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Admin',
+        required: true,
+    },
+    creationCode: {
+        type: String,
+        required: true,
+        unique: true,  // Ensure the creation code is unique
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now,
+    },
+})
 
 const UserModel = mongoose.model("User", userSchema)
 const AdminModel = mongoose.model("Admin", adminSchema)
-// const TestModel = mongoose.model("Test", testSchema)
+const TeamModel = mongoose.model("Team", teamSchema)
 
 module.exports = {
     UserModel: UserModel,
     AdminModel: AdminModel,
+    TeamModel: TeamModel
 }

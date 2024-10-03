@@ -1,10 +1,10 @@
 const { Router } = require("express");
 const userRouter = Router();
-const { UserModel } = require("../db/db")
+const { UserModel, AdminModel } = require("../db/db")
 const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
 
-userRouter.post("/signup", async (req, res) => {
+    userRouter.post("/signup", async (req, res) => {
     const { name, rollNo, email, password, branch, mobile, year } = req.body;
 
     try {
@@ -42,7 +42,6 @@ userRouter.post("/signin", async function(req, res) {
         }
     }
 
-    // Compare password
     const passwordMatch = await bcrypt.compare(password, user.password);
 
     if (passwordMatch) {
@@ -60,4 +59,4 @@ userRouter.post("/signin", async function(req, res) {
     }
 });
 
-module.exports = { userRouter };
+module.exports = userRouter;
