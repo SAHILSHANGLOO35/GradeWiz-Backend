@@ -1,11 +1,14 @@
 import { Router } from "express";
 const testRouter = Router();
-import { TestModel } from "../db/db.js";
+import { TestModel, TeamModel } from "../db/db.js";
 import { verifyToken } from "../middlewares/auth.middlewares.js";
 
 testRouter.post("/create-test", verifyToken, async (req, res) => {
     try {
-        const { title, questions, createdBy, teamId } = req.body;
+        const { title, questions, createdBy, teamCode } = req.body;
+
+        const team = await TeamModel.findOne({ creationCode: teamCode });
+        const teamId = team._id
 
         const newTest = new TestModel({
             title,

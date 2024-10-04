@@ -1,2 +1,0 @@
-1. Explain the working of a stack data structure.
-2. What is the time complexity of binary search?
