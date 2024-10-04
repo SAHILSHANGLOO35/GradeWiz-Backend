@@ -2,27 +2,11 @@ import { Router } from "express";
 const testRouter = Router();
 import { TestModel } from "../db/db.js";
 import { verifyToken } from "../middlewares/auth.middlewares.js";
-import fs from "fs";
-import path from "path";
 
 testRouter.post("/create-test", verifyToken, async (req, res) => {
     try {
         const { title, questions, createdBy, teamId } = req.body;
 
-        const fileName = `${title.replace(/\s+/g, "_")}_${Date.now()}.txt`;
-        const filePath = path.join("uploads", fileName);
-
-        if (!fs.existsSync("uploads")) {
-            fs.mkdirSync("uploads");
-        }
-
-        // Convert the questions array to a formatted string for writing to the file
-        const fileContent = questions.map((q, index) => `${index + 1}. ${q.questionText}`).join("\n");
-
-        // Write the questions to a text file
-        fs.writeFileSync(filePath, fileContent);
-
-        // Save test details in the TestModel, including the file path
         const newTest = new TestModel({
             title,
             questions: questions.map((q) => ({
@@ -32,7 +16,6 @@ testRouter.post("/create-test", verifyToken, async (req, res) => {
             })),
             createdBy,
             team: teamId || null,
-            documentPath: filePath, // Save file path in the database
         });
 
         await newTest.save();
@@ -55,24 +38,18 @@ testRouter.delete("/:id", verifyToken, async (req, res) => {
             return res.status(404).json({ message: "Test not found!" });
         }
 
-        // Delete the associated text file if it exists
-        if (deletedTest.documentPath && fs.existsSync(deletedTest.documentPath)) {
-            fs.unlinkSync(deletedTest.documentPath);
-        }
-
         res.json({ message: "Test deleted successfully!" });
     } catch (error) {
         console.error("Error deleting test:", error);
         res.status(500).json({ message: "Failed to delete test", error: error.message });
     }
-})
+});
 
 testRouter.put("/:id", verifyToken, async (req, res) => {
     try {
         const { id } = req.params;
         const { title, questions, teamId } = req.body;
 
-        // Update test details
         const updatedTest = await TestModel.findByIdAndUpdate(
             id,
             {
@@ -96,7 +73,7 @@ testRouter.put("/:id", verifyToken, async (req, res) => {
         console.error("Error updating test:", error);
         res.status(500).json({ message: "Failed to update test", error: error.message });
     }
-})
+});
 
 testRouter.get("/", verifyToken, async (req, res) => {
     try {
@@ -108,6 +85,6 @@ testRouter.get("/", verifyToken, async (req, res) => {
         console.error("Error retrieving tests:", error);
         res.status(500).json({ message: "Failed to retrieve tests", error: error.message });
     }
-})
+});
 
 export default testRouter;

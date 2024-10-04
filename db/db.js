@@ -78,42 +78,29 @@ export const teamSchema = new mongoose.Schema({
 })
 
 export const testSchema = new mongoose.Schema({
-    title: {
-        type: String,
-        required: true,
+    title: { 
+        type: String, 
+        required: true 
     },
-    questions: [{
-        questionText: {
-            type: String,
-            required: true
-        },
-        answerType: {
-            type: String,
-            enum: ['short-answer', 'long-answer'],
-            required: true
-        },
-        maxMarks: {
-            type: Number,
-            required: true
-        },
-    }],
-    createdBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Admin',
-        required: true
+    questions: [
+        {
+            questionText: { type: String, required: true },
+            answerType: { type: String, required: true },
+            maxMarks: { type: Number, required: true },
+        }
+    ],
+    createdBy: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'User', 
+        required: true 
     },
-    team: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Team',
+    team: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'Team', 
+        default: null 
     },
-    documentPath: {
-        type: String, // Path to the .txt file containing questions
-        required: true
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    }
+}, { 
+    timestamps: true 
 })
 
 export const UserModel = mongoose.model("User", userSchema);

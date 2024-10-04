@@ -2,9 +2,10 @@ import sys
 import os
 from flask import Flask, jsonify, request
 from PyPDF2 import PdfReader
-from groq import Groq
+import google.generativeai as genai
 from flask_cors import CORS
 
+genai.configure(api_key="AIzaSyBr3I10MLWq4XLZL9s5xNoBpIc5LUykFLA")
 
 app = Flask(__name__)
 
@@ -12,12 +13,10 @@ CORS(app, origins=["*"])  # Replace "" with your frontend's origin
 
 TMP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tmp') 
 
+model = genai.GenerativeModel("gemini-1.5-flash")
+
 def summarize_pdf(pdf_path, prompt):
     # Initialize Groq client
-    client = Groq(
-        api_key="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",
-        # timeout=20.0,
-    )
 
     # Open the PDF
     reader = PdfReader(pdf_path)
@@ -31,18 +30,9 @@ def summarize_pdf(pdf_path, prompt):
 
     prompt = f"{prompt}\n\n{full_text}"
 
-    # Generate summary using Groq
-    resp = client.chat.completions.create(
-        model="llama3-8b-8192",
-        messages=[
-            {
-                "role": "user",
-                "content": prompt,
-            }
-        ],
-    )
-
-    return resp.choices[0].message.content
+    response = model.generate_content(prompt)
+    
+    return response.text
 
 @app.route('/summarize', methods=['POST'])
 def summarize():
