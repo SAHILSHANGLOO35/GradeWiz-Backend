@@ -4,8 +4,7 @@ import {UserModel, AdminModel} from '../db/db.js'
 export const verifyToken = async (req, res, next) => {
     try {
         // Get the token from the Authorization header (expecting format: Bearer <token>)
-        console.log("Hello world")
-        const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
+        const token = req.headers.token;
 
         if (!token) {
             return res.status(401).json({ message: "Access Denied. No token provided." });

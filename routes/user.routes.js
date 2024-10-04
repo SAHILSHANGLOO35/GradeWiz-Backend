@@ -27,14 +27,11 @@ import jwt from "jsonwebtoken"
 userRouter.post("/signin", async function(req, res) {
     const { email, password } = req.body;
 
-    // First search in AdminModel
     let user = await AdminModel.findOne({ email: email });
 
-    // If not found in AdminModel, search in UserModel
     if (!user) {
         user = await UserModel.findOne({ email: email });
 
-        // If not found in both models, return "Please signup first"
         if (!user) {
             return res.json({
                 message: "Please signup first"

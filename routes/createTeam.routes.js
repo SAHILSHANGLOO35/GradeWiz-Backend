@@ -3,9 +3,6 @@ const teamRouter = Router();
 import { TeamModel } from "../db/db.js";
 import { verifyToken } from "../middlewares/auth.middlewares.js";
 
-console.log("Verify Token Middleware: ", verifyToken); // Add this line to debug
-
-
 const generateUniqueCode = async () => {
     let code;
     let isUnique = false;

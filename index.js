@@ -6,6 +6,7 @@ import userRouter from './routes/user.routes.js';
 import adminRouter from './routes/admin.routes.js';
 import teamRouter from './routes/createTeam.routes.js';
 import joinTeamRouter from './routes/joinTeam.routes.js';
+import testRouter from "./routes/createTest.routes.js"
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use("/api/v1/user", userRouter);
 app.use("/api/v1/admin", adminRouter);
 app.use("/api/v1/team", teamRouter);
 app.use("/api/v1/join-team", joinTeamRouter);
+app.use("/api/v1/tests", testRouter)
 
 // MongoDB connection and server start
 async function main() {
