@@ -15,7 +15,7 @@ TMP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tmp')
 def summarize_pdf(pdf_path, prompt):
     # Initialize Groq client
     client = Groq(
-        api_key="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",
+        api_key="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",
         # timeout=20.0,
     )
 
