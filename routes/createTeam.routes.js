@@ -20,7 +20,8 @@ const generateUniqueCode = async () => {
 
 teamRouter.post("/create", verifyToken, async (req, res) => {
     try {
-        const { teamName, description, createdBy, teamMembers } = req.body;
+        console.log(req.body)
+        const { teamName, description } = req.body;
 
         const existingTeam = await TeamModel.findOne({ teamName });
         if (existingTeam) {
@@ -34,8 +35,7 @@ teamRouter.post("/create", verifyToken, async (req, res) => {
         const newTeam = await TeamModel.create({
             teamName,
             description,
-            createdBy,
-            teamMembers,
+            createdBy: req.body.admin._id,
             creationCode
         });
 
