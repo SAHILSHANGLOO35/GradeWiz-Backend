@@ -11,7 +11,6 @@ import fetchTeamsRouter from "./routes/fetchTeams.routes.js"
 
 const app = express();
 
-// Middleware
 app.use(cors()); // Enable CORS for all routes
 app.use(express.json()); // Parse JSON bodies
 

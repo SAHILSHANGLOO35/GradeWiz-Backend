@@ -54,4 +54,29 @@ joinTeamRouter.post("/join", verifyToken, async  (req, res) => {
     }
 })
 
+joinTeamRouter.get("/get-joined-teams", verifyToken, async (req, res) => {
+    try {
+        const user = req.body.user;
+
+        if (!user) {
+            return res.status(401).json({ message: "Unauthorized. Please log in to view joined teams." });
+        }
+
+        // Find the user by ID and populate the teams array
+        const populatedUser = await UserModel.findById(user._id).populate('teams');
+
+        if (!populatedUser) {
+            return res.status(404).json({ message: "User not found." });
+        }
+
+        return res.status(200).json({
+            message: "Teams joined by user retrieved successfully!",
+            teams: populatedUser.teams,
+        });
+    } catch (error) {
+        console.error("Error retrieving joined teams:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+})
+
 export default joinTeamRouter

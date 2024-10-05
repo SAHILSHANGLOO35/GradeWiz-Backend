@@ -29,7 +29,11 @@ export const userSchema = new mongoose.Schema({
     year: {
         type: String,
         required: true
-    }
+    },
+    teams: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Team'
+    }],
 })
 
 export const adminSchema = new mongoose.Schema({
