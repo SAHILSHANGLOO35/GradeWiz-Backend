@@ -3,10 +3,10 @@ const joinTeamRouter = Router();
 import { TeamModel } from "../db/db.js";
 import { verifyToken } from "../middlewares/auth.middlewares.js";
 
-joinTeamRouter.post("/", verifyToken, async  (req, res) => {
+joinTeamRouter.post("/join", verifyToken, async  (req, res) => {
     try {
         // Get the user from the request (added by the verifyToken middleware)
-        const user = req.user;
+        const user = req.body.user;
 
         // If the user is not found in the request (authentication issue), return error
         if (!user) {
@@ -41,6 +41,8 @@ joinTeamRouter.post("/", verifyToken, async  (req, res) => {
 
         // Save the updated team document to the database
         await team.save();
+
+        //In the teams  array for that user, add that team code ie that user has joined that team 
 
         return res.status(200).json({
             message: "Successfully joined the team!",
