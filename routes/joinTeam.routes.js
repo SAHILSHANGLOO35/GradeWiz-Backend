@@ -1,12 +1,13 @@
 import { Router } from "express";
 const joinTeamRouter = Router();
-import { TeamModel } from "../db/db.js";
+import { TeamModel, UserModel } from "../db/db.js";
 import { verifyToken } from "../middlewares/auth.middlewares.js";
 
-joinTeamRouter.post("/join", verifyToken, async  (req, res) => {
+joinTeamRouter.post("/join", verifyToken, async (req, res) => {
     try {
         // Get the user from the request (added by the verifyToken middleware)
         const user = req.body.user;
+        console.log(req.body)
 
         // If the user is not found in the request (authentication issue), return error
         if (!user) {
@@ -42,7 +43,22 @@ joinTeamRouter.post("/join", verifyToken, async  (req, res) => {
         // Save the updated team document to the database
         await team.save();
 
-        //In the teams  array for that user, add that team code ie that user has joined that team 
+        // Fetch the user document from the database
+        const userDoc = await UserModel.findById(user._id);
+
+        if (!userDoc) {
+            return res.status(404).json({ message: "User not found." });
+        }
+
+        // Check if the user has already joined this team
+        const hasJoinedTeam = userDoc.joinedTeams.includes(team._id);
+
+        if (!hasJoinedTeam) {
+            // Add the team to the user's joinedTeams array
+            userDoc.joinedTeams.push(team._id);
+            // Save the updated user document to the database
+            await userDoc.save();
+        }
 
         return res.status(200).json({
             message: "Successfully joined the team!",
@@ -52,31 +68,10 @@ joinTeamRouter.post("/join", verifyToken, async  (req, res) => {
         console.error("Error joining team:", error);
         return res.status(500).json({ message: "Internal server error" });
     }
-})
+});
 
-joinTeamRouter.get("/get-joined-teams", verifyToken, async (req, res) => {
-    try {
-        const user = req.body.user;
 
-        if (!user) {
-            return res.status(401).json({ message: "Unauthorized. Please log in to view joined teams." });
-        }
 
-        // Find the user by ID and populate the teams array
-        const populatedUser = await UserModel.findById(user._id).populate('teams');
 
-        if (!populatedUser) {
-            return res.status(404).json({ message: "User not found." });
-        }
-
-        return res.status(200).json({
-            message: "Teams joined by user retrieved successfully!",
-            teams: populatedUser.teams,
-        });
-    } catch (error) {
-        console.error("Error retrieving joined teams:", error);
-        return res.status(500).json({ message: "Internal server error" });
-    }
-})
 
 export default joinTeamRouter

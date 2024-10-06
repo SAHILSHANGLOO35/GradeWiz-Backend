@@ -5,7 +5,6 @@ export const verifyToken = async (req, res, next) => {
     try {
         // Get the token from the Authorization header (expecting format: Bearer <token>)
         const token = req.headers.authorization;
-        console.log(token)
 
 
         if (!token) {
