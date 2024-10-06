@@ -93,9 +93,10 @@ export const testSchema = new mongoose.Schema({
     },
     questions: [
         {
-            questionText: { type: String, required: true },
-            answerType: { type: String, required: true },
-            maxMarks: { type: Number, required: true },
+            question: { 
+                type: String, 
+                required: true 
+            }
         }
     ],
     createdBy: { 
@@ -108,6 +109,10 @@ export const testSchema = new mongoose.Schema({
         ref: 'Team', 
         default: null 
     },
+    duedate: {
+        type: String, 
+        required: true
+    }
 }, { 
     timestamps: true 
 })

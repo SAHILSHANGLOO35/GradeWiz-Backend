@@ -5,30 +5,48 @@ import { verifyToken } from "../middlewares/auth.middlewares.js";
 
 testRouter.post("/create-test", verifyToken, async (req, res) => {
     try {
-        const { title, questions, createdBy, teamCode } = req.body;
+        const { title, questions, teamCode, duedate } = req.body;
+        const createdBy = req.body.admin._id;
 
-        const team = await TeamModel.findOne({ creationCode: teamCode });
-        const teamId = team._id
+        let teamId = null;
+        
+        // If a teamCode is provided, find the team
+        if (teamCode) {
+            const team = await TeamModel.findOne({ creationCode: teamCode });
 
+            // If no team is found, return an error
+            if (!team) {
+                return res.status(404).json({ message: "Team not found with the provided team code." });
+            }
+
+            teamId = team._id;
+        }
+
+        // Ensure questions array is valid and contains objects with a 'question' field
+        if (!questions || !Array.isArray(questions) || questions.length === 0) {
+            return res.status(400).json({ message: "A valid array of questions is required." });
+        }
+
+        // Create the test object with the provided data
         const newTest = new TestModel({
             title,
-            questions: questions.map((q) => ({
-                questionText: q.questionText,
-                answerType: q.answerType,
-                maxMarks: q.maxMarks,
-            })),
+            questions, // questions should already be in the correct format (array of objects with 'question' field)
             createdBy,
-            team: teamId || null,
+            team: teamId || null, // Team ID is optional, only included if teamCode is provided
+            duedate
         });
 
+        // Save the new test document in the database
         await newTest.save();
 
+        // Return success response
         res.status(201).json({ message: "Test created successfully", test: newTest });
     } catch (error) {
         console.error("Error creating test:", error);
         res.status(500).json({ message: "Failed to create test", error: error.message });
     }
 });
+
 
 testRouter.delete("/:id", verifyToken, async (req, res) => {
     try {
