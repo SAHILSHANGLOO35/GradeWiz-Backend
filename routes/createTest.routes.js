@@ -139,4 +139,32 @@ testRouter.post("/team-tests", verifyToken, async (req, res) => {
     }
 })
 
+testRouter.post("/questions-by-title", verifyToken, async (req, res) => {
+    try {
+        const { title } = req.body;
+
+        // Ensure a title is provided
+        if (!title) {
+            return res.status(400).json({ message: "Test title is required." });
+        }
+
+        // Find the test by the provided title
+        const test = await TestModel.findOne({ title });
+
+        // If no test is found, return an error
+        if (!test) {
+            return res.status(404).json({ message: "Test not found with the provided title." });
+        }
+
+        // Return only the questions of the test
+        return res.status(200).json({
+            message: "Test questions retrieved successfully.",
+            questions: test.questions,
+        });
+    } catch (error) {
+        console.error("Error retrieving questions by title:", error);
+        return res.status(500).json({ message: "Failed to retrieve questions", error: error.message });
+    }
+})
+
 export default testRouter;
