@@ -108,9 +108,10 @@ testRouter.get("/", verifyToken, async (req, res) => {
     }
 })
 
-testRouter.get("/team-tests", verifyToken, async (req, res) => {
+testRouter.post("/team-tests", verifyToken, async (req, res) => {
     try {
         const { teamCode } = req.body;
+        console.log(req.body)
 
         if (!teamCode) {
             return res.status(400).json({ message: "Team code is required to retrieve tests for the team." });
