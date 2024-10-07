@@ -76,4 +76,29 @@ teamRouter.get("/all-members", verifyToken, async (req, res) => {
     }
 })
 
+teamRouter.delete("/remove-member", verifyToken, async (req, res) => {
+    try {
+        const { teamId, memberId } = req.body;
+
+        // Find the team and update it by removing the specified member
+        const team = await TeamModel.findByIdAndUpdate(
+            teamId,
+            { $pull: { teamMembers: memberId } },
+            { new: true }
+        ).populate("teamMembers", "name email rollNo branch year");
+
+        if (!team) {
+            return res.status(404).json({ message: "Team not found" });
+        }
+
+        return res.status(200).json({
+            message: "Member removed successfully",
+            team,
+        });
+    } catch (error) {
+        console.error("Error removing member:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+})
+
 export default teamRouter
