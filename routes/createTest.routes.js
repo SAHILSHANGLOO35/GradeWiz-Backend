@@ -39,8 +39,26 @@ testRouter.post("/create-test", verifyToken, async (req, res) => {
         // Save the new test document in the database
         await newTest.save();
 
-        // Return success response
-        res.status(201).json({ message: "Test created successfully", test: newTest });
+        // Define a dynamic schema and model for storing user responses for this specific test
+        const responseSchema = new mongoose.Schema({
+            userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Reference to User ID
+            answers: { type: Array, required: true }, // Array of answers submitted by the user
+            grading: { type: Number, required: false } // Grading for the answers (if applicable)
+        });
+
+        // Create a dynamic model using the test title (e.g., 'TestTitle_Responses')
+        const modelName = `${title.replace(/\s+/g, '_')}_Responses`; // Replace spaces in title with underscores for collection name
+        const TestResponseModel = mongoose.model(modelName, responseSchema);
+
+        // Create a new collection with this model (optional step; Mongoose will create collection when data is added)
+        await TestResponseModel.createCollection();
+
+        // Return success response including the dynamically created model/collection name
+        res.status(201).json({ 
+            message: "Test and associated answer collection created successfully",
+            test: newTest,
+            responseCollection: modelName
+        });
     } catch (error) {
         console.error("Error creating test:", error);
         res.status(500).json({ message: "Failed to create test", error: error.message });
