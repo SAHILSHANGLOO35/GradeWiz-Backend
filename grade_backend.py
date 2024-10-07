@@ -58,45 +58,51 @@ def summarize():
 
 @app.route('/grade', methods=['POST'])
 def grade_questions():
-    # Read the incoming JSON payload, which should contain an array of question objects
-    data = request.json
+    # Check if the incoming request contains valid JSON
+    if not request.is_json:
+        return jsonify({"error": "Invalid JSON format"}), 400
+    
+    # Read the JSON payload from the request
+    data = request.get_json()
 
+    # Check if the data is a non-empty list
     if not isinstance(data, list) or len(data) == 0:
         return jsonify({"error": "No questions provided or input format is incorrect"}), 400
 
-    # Save the uploaded PDF file temporarily (you might need to uncomment the file upload logic)
+    # Path to the uploaded PDF (adjust the path accordingly)
     pdf_path = os.path.join(TMP_DIR, 'Intro_CN.pdf')
 
     try:
-        # Read the PDF content once to get the context for all questions
+        # Extract text from the PDF
         reader = PdfReader(pdf_path)
         full_text = ""
         for page in reader.pages:
             full_text += page.extract_text()
 
-        # Initialize an empty list to store graded results
+        # List to store the graded results
         graded_results = []
 
-        # Loop through each question object
+        # Loop through each question-answer object in the data
         for qa in data:
             question = qa.get("question", "")
-
-            # Add some dummy answer for the grading (if the answer is provided separately, you can change this logic)
-            # Example: Replace this with a dynamic input or response from a frontend/UI
-            answer = "This is a placeholder answer for grading purposes."
+            answer = qa.get("answer", "")
 
             # Call the `grade` function to get the grade for this question-answer pair
             grade_response = grade(full_text, question, answer)
 
-            # Assuming `grade_response` returns a string in the form of '{"grade": <value>}' or similar
-            grade_value = json.loads(grade_response).get('grade', 'N/A')
+            # Check and handle empty or invalid JSON responses from `grade`
+            try:
+                grade_value = json.loads(grade_response).get('grade', 'N/A')
+            except json.JSONDecodeError:
+                grade_value = 'N/A'
 
-            # Append the grade to the current question object
-            graded_result = {"question": question, "grade": grade_value}
+            # Append the graded result to the list
+            graded_result = {"question": question, "answer": answer, "grade": grade_value}
             graded_results.append(graded_result)
 
         # Return the graded results as a JSON response
         return jsonify({"graded_results": graded_results}), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -116,9 +122,18 @@ def grade(context, question, answer):
     
     # Call the model to get a response for the grading
     response = model.generate_content(prompt)
+    print(response.text)
     
-    # Return the raw response text (you might need to parse it based on the format)
-    return response.text
+    # Check if the response is empty or invalid
+    if not response or not response.text.strip():
+        return '{"grade": "N/A"}'  # Return default grade if response is empty
+
+    try:
+        # Return the raw response text
+        return response.text
+    except Exception as e:
+        return '{"grade": "N/A"}'  # Return default grade if any error occurs
+
 
 
 
