@@ -5,7 +5,7 @@ from PyPDF2 import PdfReader
 import google.generativeai as genai
 from flask_cors import CORS
 
-genai.configure(api_key=os.getenv("GEN_AI_API_KEY"))
+genai.configure(api_key="AIzaSyBr3I10MLWq4XLZL9s5xNoBpIc5LUykFLA")
 
 app = Flask(__name__)
 

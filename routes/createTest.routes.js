@@ -2,6 +2,8 @@ import { Router } from "express";
 const testRouter = Router();
 import { TestModel, TeamModel } from "../db/db.js";
 import { verifyToken } from "../middlewares/auth.middlewares.js";
+import mongoose from 'mongoose'
+
 
 testRouter.post("/create-test", verifyToken, async (req, res) => {
     try {
@@ -184,6 +186,56 @@ testRouter.post("/questions-by-title", verifyToken, async (req, res) => {
         console.error("Error retrieving questions by title:", error);
         return res.status(500).json({ message: "Failed to retrieve questions", error: error.message });
     }
-})
+});
+
+testRouter.post("/submit-answers", verifyToken, async (req, res) => {
+    try {
+        const { questions, title } = req.body; // Get the submitted questions with answers and the test title
+        const user = req.body.user;     // User info obtained from middleware (e.g., user._id)
+        
+        if (!questions || !Array.isArray(questions) || questions.length === 0) {
+            return res.status(400).json({ message: "No answers provided." });
+        }
+
+        // Ensure the test title is provided
+        if (!title) {
+            return res.status(400).json({ message: "Test title is required." });
+        }
+
+        // Create a dynamic model based on the lowercase test title
+        const modelName = `${title.replace(/\s+/g, '_').toLowerCase()}_responses`; // Convert title to lowercase
+        let TestResponseModel;
+
+        // Check if the model is already registered
+        if (mongoose.models[modelName]) {
+            TestResponseModel = mongoose.model(modelName);
+        } else {
+            // Define schema for test responses
+            const responseSchema = new mongoose.Schema({
+                userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // User ID reference
+                answers: { type: Array, required: true }, // Array of answers
+                grading: { type: Number, required: false } // Grading (optional)
+            });
+
+            // Create a dynamic model using the test title (lowercase)
+            TestResponseModel = mongoose.model(modelName, responseSchema);
+        }
+
+        // Create a new document for the user's answers
+        const newResponse = new TestResponseModel({
+            userId: user._id,  // Store the user's ID
+            answers: questions,  // Store the questions with the user's answers
+            grading: null  // Grading can be added later (if needed)
+        });
+
+        // Save the response to the database
+        await newResponse.save();
+
+        res.status(201).json({ message: "Test answers submitted successfully", response: newResponse });
+    } catch (error) {
+        console.error("Error submitting answers:", error);
+        res.status(500).json({ message: "Failed to submit answers", error: error.message });
+    }
+});
 
 export default testRouter;
