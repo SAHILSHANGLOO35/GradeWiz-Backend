@@ -106,6 +106,36 @@ testRouter.get("/", verifyToken, async (req, res) => {
         console.error("Error retrieving tests:", error);
         res.status(500).json({ message: "Failed to retrieve tests", error: error.message });
     }
-});
+})
+
+testRouter.get("/team-tests", verifyToken, async (req, res) => {
+    try {
+        const { teamCode } = req.body;
+
+        if (!teamCode) {
+            return res.status(400).json({ message: "Team code is required to retrieve tests for the team." });
+        }
+
+        const team = await TeamModel.findOne({ creationCode: teamCode });
+
+        if (!team) {
+            return res.status(404).json({ message: "No team found with the provided team code." });
+        }
+
+        const teamId = team._id;
+
+        const teamTests = await TestModel.find({ team: teamId })
+            .populate('createdBy') 
+            .populate('team'); 
+
+        return res.status(200).json({
+            message: "Tests retrieved successfully for the specified team.",
+            tests: teamTests,
+        });
+    } catch (error) {
+        console.error("Error retrieving tests for the team:", error);
+        return res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+})
 
 export default testRouter;
