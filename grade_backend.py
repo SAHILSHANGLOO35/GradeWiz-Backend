@@ -5,6 +5,7 @@ from PyPDF2 import PdfReader
 import google.generativeai as genai
 from flask_cors import CORS
 import json
+import re
 
 genai.configure(api_key="AIzaSyBr3I10MLWq4XLZL9s5xNoBpIc5LUykFLA")
 
@@ -58,83 +59,70 @@ def summarize():
 
 @app.route('/grade', methods=['POST'])
 def grade_questions():
-    # Check if the incoming request contains valid JSON
     if not request.is_json:
         return jsonify({"error": "Invalid JSON format"}), 400
     
-    # Read the JSON payload from the request
     data = request.get_json()
 
-    # Check if the data is a non-empty list
     if not isinstance(data, list) or len(data) == 0:
         return jsonify({"error": "No questions provided or input format is incorrect"}), 400
 
-    # Path to the uploaded PDF (adjust the path accordingly)
     pdf_path = os.path.join(TMP_DIR, 'Intro_CN.pdf')
 
     try:
-        # Extract text from the PDF
         reader = PdfReader(pdf_path)
         full_text = ""
         for page in reader.pages:
             full_text += page.extract_text()
 
-        # List to store the graded results
         graded_results = []
 
-        # Loop through each question-answer object in the data
         for qa in data:
             question = qa.get("question", "")
             answer = qa.get("answer", "")
 
-            # Call the `grade` function to get the grade for this question-answer pair
             grade_response = grade(full_text, question, answer)
 
-            # Check and handle empty or invalid JSON responses from `grade`
+            # Parse the JSON response
             try:
-                grade_value = json.loads(grade_response).get('grade', 'N/A')
+                grade_json = json.loads(grade_response)
+                grade_value = grade_json.get('grade', 'N/A')
+                feedback = grade_json.get('feedback', 'N/A')
             except json.JSONDecodeError:
-                grade_value = 'N/A'
+                # If JSON parsing fails, try to extract grade and feedback using string manipulation
+                grade_match = re.search(r'"grade":\s*(\d+)', grade_response)
+                feedback_match = re.search(r'"feedback":\s*"(.*?)"', grade_response, re.DOTALL)
+                
+                grade_value = grade_match.group(1) if grade_match else 'N/A'
+                feedback = feedback_match.group(1) if feedback_match else 'N/A'
 
-            # Append the graded result to the list
-            graded_result = {"question": question, "answer": answer, "grade": grade_value}
-            graded_results.append(graded_result)
+            qa['grade'] = grade_value
+            qa['feedback'] = feedback
+            graded_results.append(qa)
 
-        # Return the graded results as a JSON response
         return jsonify({"graded_results": graded_results}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 def grade(context, question, answer):
-    # Create a prompt for grading the answer based on the given context
     prompt = f"""
-    You will be given a context for a question, the question itself, and an answer written by a student. Your task is to grade the answer on a scale of 1 to 5.
+    You will be given a context for a question, the question itself, and an answer written by a student. Your task is to grade the answer on a scale of 1 to 5 and provide feedback.
     <context>{context}</context>
     <question>{question}</question>
     <answer>{answer}</answer>
 
     Output format:
     {{
-    'grade': <grade>
+    "grade": <grade>,
+    "feedback": <feedback>
     }}
     """
     
-    # Call the model to get a response for the grading
     response = model.generate_content(prompt)
-    print(response.text)
-    
-    # Check if the response is empty or invalid
-    if not response or not response.text.strip():
-        return '{"grade": "N/A"}'  # Return default grade if response is empty
+    print(response.text)  # This prints the correct JSON to the terminal
 
-    try:
-        # Return the raw response text
-        return response.text
-    except Exception as e:
-        return '{"grade": "N/A"}'  # Return default grade if any error occurs
-
-
+    return response.text
 
 
 if __name__ == '__main__':

@@ -7,7 +7,6 @@ joinTeamRouter.post("/join", verifyToken, async (req, res) => {
     try {
         // Get the user from the request (added by the verifyToken middleware)
         const user = req.body.user;
-        console.log(req.body)
 
         // If the user is not found in the request (authentication issue), return error
         if (!user) {

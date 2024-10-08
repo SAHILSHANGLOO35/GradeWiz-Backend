@@ -6,7 +6,6 @@ const fetchTeamsRouter = Router();
 
 fetchTeamsRouter.get("/", verifyToken, async (req, res) => {
     try {
-        console.log(req.body)
         const user = req.body.user; // assuming the verifyToken middleware adds user here
         const admin = req.body.admin;
 

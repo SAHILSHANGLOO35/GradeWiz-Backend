@@ -1,6 +1,6 @@
 import { Router } from "express";
 const teamRouter = Router();
-import { TeamModel } from "../db/db.js";
+import { TeamModel, UserModel } from "../db/db.js";
 import { verifyToken } from "../middlewares/auth.middlewares.js";
 
 const generateUniqueCode = async () => {
@@ -20,7 +20,6 @@ const generateUniqueCode = async () => {
 
 teamRouter.post("/create", verifyToken, async (req, res) => {
     try {
-        console.log(req.body)
         const { teamName, description } = req.body;
 
         const existingTeam = await TeamModel.findOne({ teamName });
@@ -49,34 +48,45 @@ teamRouter.post("/create", verifyToken, async (req, res) => {
     }
 })
 
-teamRouter.get("/all-members", verifyToken, async (req, res) => {
+
+teamRouter.post("/all-members", verifyToken, async (req, res) => {
     try {
+        console.log("allmembers api", req.body);
+        const teamCode = req.body.teamCode; // This is the creationCode
 
-        const userId = req.body.user._id;
+        // Find the team using creationCode
+        const team = await TeamModel.findOne({ 
+            creationCode: teamCode // Use creationCode to find the team
+        }).populate("teamMembers", "name email rollNo branch year"); // Optionally populate user details
 
-        const teams = await TeamModel.find({ 
-            teamMembers: userId 
-        }).populate("teamMembers", "name email rollNo branch year");
-
-        if (!teams.length) {
-            return res.status(404).json({ message: "No teams found for this user." });
+        if (!team) {
+            return res.status(404).json({ message: "No team found with this creation code." });
         }
 
-        const teamsWithMembers = teams.map(team => ({
+        // Fetch details of all members from the Users collection based on member IDs
+        const members = await UserModel.find({
+            _id: { $in: team.teamMembers }
+        }).select("name email rollNo branch year");
+
+        // Construct the response
+        const teamWithMembers = {
             teamName: team.teamName,
             description: team.description,
-            members: team.teamMembers,
-        }));
+            members: members // Return the fetched member details
+        };
+
+        console.log(teamWithMembers, "line 71 @@@@");
 
         return res.status(200).json({
-            message: "Teams and members retrieved successfully",
-            teams: teamsWithMembers,
+            message: "Team and members retrieved successfully",
+            team: teamWithMembers,
         });
     } catch (error) {
         console.error("Error retrieving members:", error);
         return res.status(500).json({ message: "Internal server error" });
     }
-})
+});
+
 
 teamRouter.delete("/remove-member", verifyToken, async (req, res) => {
     try {

@@ -2,7 +2,8 @@ import { Router } from "express";
 const testRouter = Router();
 import { TestModel, TeamModel } from "../db/db.js";
 import { verifyToken } from "../middlewares/auth.middlewares.js";
-import mongoose from 'mongoose'
+import mongoose from 'mongoose';
+import axios from 'axios';
 
 
 testRouter.post("/create-test", verifyToken, async (req, res) => {
@@ -131,7 +132,6 @@ testRouter.get("/", verifyToken, async (req, res) => {
 testRouter.post("/team-tests", verifyToken, async (req, res) => {
     try {
         const { teamCode } = req.body;
-        console.log(req.body)
 
         if (!teamCode) {
             return res.status(400).json({ message: "Team code is required to retrieve tests for the team." });
@@ -190,48 +190,71 @@ testRouter.post("/questions-by-title", verifyToken, async (req, res) => {
 
 testRouter.post("/submit-answers", verifyToken, async (req, res) => {
     try {
-        const { questions, title } = req.body; // Get the submitted questions with answers and the test title
-        const user = req.body.user;     // User info obtained from middleware (e.g., user._id)
+        const { questions, title } = req.body;
+        const user = req.body.user;
         
         if (!questions || !Array.isArray(questions) || questions.length === 0) {
             return res.status(400).json({ message: "No answers provided." });
         }
 
-        // Ensure the test title is provided
         if (!title) {
             return res.status(400).json({ message: "Test title is required." });
         }
 
+        // Send questions to Python API for grading
+        const pythonApiUrl = 'http://127.0.0.1:5000/grade'; // Replace with your actual Python API URL
+        let gradedResponses;
+        try {
+            const gradingResponse = await axios.post(pythonApiUrl, questions);
+            gradedResponses = gradingResponse.data.graded_results;
+        } catch (gradingError) {
+            console.error("Error grading answers:", gradingError);
+            return res.status(500).json({ message: "Failed to grade answers", error: gradingError.message });
+        }
+
         // Create a dynamic model based on the lowercase test title
-        const modelName = `${title.replace(/\s+/g, '_').toLowerCase()}_responses`; // Convert title to lowercase
+        const modelName = `${title.replace(/\s+/g, '_').toLowerCase()}_responses`;
         let TestResponseModel;
 
-        // Check if the model is already registered
         if (mongoose.models[modelName]) {
             TestResponseModel = mongoose.model(modelName);
         } else {
-            // Define schema for test responses
             const responseSchema = new mongoose.Schema({
-                userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // User ID reference
-                answers: { type: Array, required: true }, // Array of answers
-                grading: { type: Number, required: false } // Grading (optional)
+                userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+                answers: [{
+                    question: String,
+                    answer: String,
+                    grade: Number,
+                    feedback: String
+                }],
+                totalGrade: Number
             });
 
-            // Create a dynamic model using the test title (lowercase)
             TestResponseModel = mongoose.model(modelName, responseSchema);
         }
 
-        // Create a new document for the user's answers
+        // Prepare the graded answers for storage
+        const gradedAnswers = gradedResponses.map(response => ({
+            question: response.question,
+            answer: response.answer,
+            grade: response.grade,
+            feedback: response.feedback
+        }));
+
+        // Calculate total grade
+        const totalGrade = gradedAnswers.reduce((sum, answer) => sum + (Number(answer.grade) || 0), 0);
+
+        // Create a new document for the user's graded answers
         const newResponse = new TestResponseModel({
-            userId: user._id,  // Store the user's ID
-            answers: questions,  // Store the questions with the user's answers
-            grading: null  // Grading can be added later (if needed)
+            userId: user._id,
+            answers: gradedAnswers,
+            totalGrade: totalGrade
         });
 
         // Save the response to the database
         await newResponse.save();
 
-        res.status(201).json({ message: "Test answers submitted successfully", response: newResponse });
+        res.status(201).json({ message: "Test answers submitted and graded successfully", response: newResponse });
     } catch (error) {
         console.error("Error submitting answers:", error);
         res.status(500).json({ message: "Failed to submit answers", error: error.message });
