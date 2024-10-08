@@ -52,9 +52,11 @@ teamRouter.post("/create", verifyToken, async (req, res) => {
 teamRouter.get("/all-members", verifyToken, async (req, res) => {
     try {
 
-        const userId = req.body.admin._id;
+        const userId = req.body.user._id;
 
-        const teams = await TeamModel.find({ teamMembers: userId }).populate("teamMembers", "name email rollNo branch year");
+        const teams = await TeamModel.find({ 
+            teamMembers: userId 
+        }).populate("teamMembers", "name email rollNo branch year");
 
         if (!teams.length) {
             return res.status(404).json({ message: "No teams found for this user." });
