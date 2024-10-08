@@ -186,7 +186,7 @@ testRouter.post("/questions-by-title", verifyToken, async (req, res) => {
         console.error("Error retrieving questions by title:", error);
         return res.status(500).json({ message: "Failed to retrieve questions", error: error.message });
     }
-});
+})
 
 testRouter.post("/submit-answers", verifyToken, async (req, res) => {
     try {
@@ -259,6 +259,49 @@ testRouter.post("/submit-answers", verifyToken, async (req, res) => {
         console.error("Error submitting answers:", error);
         res.status(500).json({ message: "Failed to submit answers", error: error.message });
     }
-});
+})
+
+testRouter.get("/student-results/:testName", verifyToken, async (req, res) => {
+    try {
+        const { testName } = req.params;
+        const user = req.body.user; // This is set by the verifyToken middleware
+
+        if (!user) {
+            return res.status(401).json({ message: "Unauthorized. User not found." });
+        }
+
+        // Convert test name to lowercase and replace spaces with underscores
+        const formattedTestName = testName.toLowerCase().replace(/\s+/g, '_');
+
+        // Dynamically get the model for this test's responses
+        const modelName = `${formattedTestName}_responses`;
+        let TestResponseModel;
+
+        if (mongoose.models[modelName]) {
+            TestResponseModel = mongoose.model(modelName);
+        } else {
+            return res.status(404).json({ message: "Test not found." });
+        }
+
+        // Find the user's response for this test
+        const userResponse = await TestResponseModel.findOne({ userId: user._id });
+
+        if (!userResponse) {
+            return res.status(404).json({ message: "No results found for this test." });
+        }
+
+        // Return the user's answers and total grade
+        res.status(200).json({
+            message: "Test results retrieved successfully",
+            testName: testName,
+            answers: userResponse.answers,
+            totalGrade: userResponse.totalGrade
+        });
+
+    } catch (error) {
+        console.error("Error retrieving student results:", error);
+        res.status(500).json({ message: "Failed to retrieve test results", error: error.message });
+    }
+})
 
 export default testRouter;
