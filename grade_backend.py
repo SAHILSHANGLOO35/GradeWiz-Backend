@@ -107,7 +107,7 @@ def grade_questions():
 
 def grade(context, question, answer):
     prompt = f"""
-    You will be given a context for a question, the question itself, and an answer written by a student. Your task is to grade the answer on a scale of 1 to 5 and provide feedback.
+    You will be given a context for a question, the question itself, and an answer written by a student. Your task is to grade the answer on a scale of 0 to 5 and provide feedback.
     <context>{context}</context>
     <question>{question}</question>
     <answer>{answer}</answer>

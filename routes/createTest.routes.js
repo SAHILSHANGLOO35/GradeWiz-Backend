@@ -1,6 +1,6 @@
 import { Router } from "express";
 const testRouter = Router();
-import { TestModel, TeamModel } from "../db/db.js";
+import { TestModel, TeamModel,UserModel } from "../db/db.js";
 import { verifyToken } from "../middlewares/auth.middlewares.js";
 import mongoose from 'mongoose';
 import axios from 'axios';
@@ -192,6 +192,7 @@ testRouter.post("/submit-answers", verifyToken, async (req, res) => {
     try {
         const { questions, title } = req.body;
         const user = req.body.user;
+        console.log(user)
         
         if (!questions || !Array.isArray(questions) || questions.length === 0) {
             return res.status(400).json({ message: "No answers provided." });
@@ -261,29 +262,59 @@ testRouter.post("/submit-answers", verifyToken, async (req, res) => {
     }
 })
 
-testRouter.get("/student-results/:testName", verifyToken, async (req, res) => {
-    try {
-        const { testName } = req.params;
-        const user = req.body.user; // This is set by the verifyToken middleware
+const dynamicTestResponseSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    answers: { type: [String], required: true },  // Assuming answers are strings, change the type if needed
+    totalGrade: { type: Number, required: true }  // Integer field for the total grade
+});
 
+testRouter.post("/student-results", async (req, res) => {
+    try {
+        console.log(req.body.body)
+        const testName  = req.body.body.testName;
+        const username = req.body.body.username; // Set by the verifyToken middleware
+        console.log(username, testName)
+        // Find the user by username
+        const user = await UserModel.findOne({ name: username });
         if (!user) {
             return res.status(401).json({ message: "Unauthorized. User not found." });
         }
+        console.log(user)
 
         // Convert test name to lowercase and replace spaces with underscores
         const formattedTestName = testName.toLowerCase().replace(/\s+/g, '_');
 
-        // Dynamically get the model for this test's responses
+        // Dynamically create or retrieve the model for this test's responses
         const modelName = `${formattedTestName}_responses`;
-        let TestResponseModel;
 
+        // Check if the model already exists in mongoose
+        let TestResponseModel;
+        // if (mongoose.models[modelName]) {
+        //     TestResponseModel = mongoose.model(modelName);
+        // } else {
+        //     // Dynamically create the model if it doesn't exist
+        //     TestResponseModel = mongoose.model(modelName, dynamicTestResponseSchema);
+        // }
         if (mongoose.models[modelName]) {
             TestResponseModel = mongoose.model(modelName);
         } else {
-            return res.status(404).json({ message: "Test not found." });
+            const responseSchema = new mongoose.Schema({
+                userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+                answers: [{
+                    question: String,
+                    answer: String,
+                    grade: Number,
+                    feedback: String
+                }],
+                totalGrade: Number
+            });
+
+            TestResponseModel = mongoose.model(modelName, responseSchema);
         }
 
-        // Find the user's response for this test
+        console.log(TestResponseModel, user._id)
+
+        // Find the user's response for this test using the userId
         const userResponse = await TestResponseModel.findOne({ userId: user._id });
 
         if (!userResponse) {
@@ -302,6 +333,7 @@ testRouter.get("/student-results/:testName", verifyToken, async (req, res) => {
         console.error("Error retrieving student results:", error);
         res.status(500).json({ message: "Failed to retrieve test results", error: error.message });
     }
-})
+});
+
 
 export default testRouter;
