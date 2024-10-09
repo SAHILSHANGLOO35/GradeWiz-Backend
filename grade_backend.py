@@ -11,7 +11,7 @@ genai.configure(api_key="AIzaSyBr3I10MLWq4XLZL9s5xNoBpIc5LUykFLA")
 
 app = Flask(__name__)
 
-CORS(app, origins=["*"])  # Replace "" with your frontend's origin
+CORS(app, origins=["*"])  
 
 TMP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tmp') 
 
@@ -38,24 +38,26 @@ def summarize_pdf(pdf_path, prompt):
 
 @app.route('/summarize', methods=['POST'])
 def summarize():
-    # if 'pdf' not in request.files:
-    #     return jsonify({"error": "No PDF file provided"}), 400
-
-    # pdf_file = request.files['pdf']
+    # Get the prompt from the frontend
     prompt = request.form['prompt']
-    print(prompt)
+    
+    
+    # Ensure the prompt requests JSON format
+    updated_prompt = f"{prompt} in JSON format"
+    print(updated_prompt)
 
-    # Save the uploaded PDF file temporarily
+    # Save the uploaded PDF file temporarily (if applicable)
     pdf_path = os.path.join(TMP_DIR, 'Intro_CN.pdf')
-    # pdf_file.save(pdf_path)
+    # pdf_file.save(pdf_path) # Uncomment if file upload functionality is added
 
     # Summarize the PDF
     try:
-        summary = summarize_pdf(pdf_path, prompt)
+        summary = summarize_pdf(pdf_path, updated_prompt)
         print(summary)
         return jsonify({"Questions": summary}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 @app.route('/grade', methods=['POST'])
 def grade_questions():
