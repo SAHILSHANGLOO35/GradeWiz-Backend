@@ -61,12 +61,18 @@ def summarize():
 
 @app.route('/grade', methods=['POST'])
 def grade_questions():
+    print(request)
     if not request.is_json:
         return jsonify({"error": "Invalid JSON format"}), 400
     
     data = request.get_json()
 
-    if not isinstance(data, list) or len(data) == 0:
+    # Extract questions and grading level from the request
+    questions = data.get("questions")
+    grading_level = data.get("gradingLevel", "standard") 
+    print(grading_level) # Default to "standard" if not provided
+
+    if not isinstance(questions, list) or len(questions) == 0:
         return jsonify({"error": "No questions provided or input format is incorrect"}), 400
 
     pdf_path = os.path.join(TMP_DIR, 'Intro_CN.pdf')
@@ -79,11 +85,12 @@ def grade_questions():
 
         graded_results = []
 
-        for qa in data:
+        for qa in questions:
             question = qa.get("question", "")
             answer = qa.get("answer", "")
 
-            grade_response = grade(full_text, question, answer)
+            # Call the grade function with the context, question, answer, and grading level
+            grade_response = grade(full_text, question, answer, grading_level)
 
             # Parse the JSON response
             try:
@@ -107,20 +114,65 @@ def grade_questions():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-def grade(context, question, answer):
-    prompt = f"""
-    You will be given a context for a question, the question itself, and an answer written by a student. Your task is to grade the answer on a scale of 0 to 5 and provide feedback.
-    <context>{context}</context>
-    <question>{question}</question>
-    <answer>{answer}</answer>
+def grade(context, question, answer, grading_level):
+    # Adjust the prompt based on the grading level
+    if grading_level == "hard":
+        prompt = f"""
+        You will be given a context for a question, the question itself, and an answer written by a student. Grade the answer on a scale of 0 to 5, being very strict in your assessment. Focus on precision, completeness, and adherence to the context. Penalize even minor inaccuracies or lack of details. For irrelevant or off-topic answers, give a grade of 0 without hesitation. Provide thorough feedback, detailing any mistakes and areas where the student can improve.
 
-    Output format:
-    {{
-    "grade": <grade>,
-    "feedback": <feedback>
-    }}
-    """
-    
+        <context>{context}</context>
+        <question>{question}</question>
+        <answer>{answer}</answer>
+
+        Output format:
+        {{
+        "grade": <grade>,
+        "feedback": <feedback>
+        }}
+        """
+    elif grading_level == "medium":
+        prompt = f"""
+        You will be given a context for a question, the question itself, and an answer written by a student. Grade the answer on a scale of 0 to 5, focusing on a balance between accuracy, relevance, and effort. Consider minor mistakes as part of the overall effort. However, if the answer is irrelevant or completely off-topic, give a grade of 0. Provide constructive feedback that highlights both strengths and areas for improvement.
+
+        <context>{context}</context>
+        <question>{question}</question>
+        <answer>{answer}</answer>
+
+        Output format:
+        {{
+        "grade": <grade>,
+        "feedback": <feedback>
+        }}
+        """
+    elif grading_level == "lenient":
+        prompt = f"""
+        You will be given a context for a question, the question itself, and an answer written by a student. Grade the answer on a scale of 0 to 5, being lenient in your assessment. Focus on the student's effort and partial understanding, even if there are some inaccuracies. However, if the answer is irrelevant or completely off-topic, assign a grade of 0. Provide positive feedback, encouraging the student while suggesting areas for improvement.
+
+        <context>{context}</context>
+        <question>{question}</question>
+        <answer>{answer}</answer>
+
+        Output format:
+        {{
+        "grade": <grade>,
+        "feedback": <feedback>
+        }}
+        """
+    else:  # Default to "medium" grading level
+        prompt = f"""
+        You will be given a context for a question, the question itself, and an answer written by a student. Grade the answer on a scale of 0 to 5, focusing on a balance between accuracy, relevance, and effort. Consider minor mistakes as part of the overall effort. However, if the answer is irrelevant or completely off-topic, give a grade of 0. Provide constructive feedback that highlights both strengths and areas for improvement.
+
+        <context>{context}</context>
+        <question>{question}</question>
+        <answer>{answer}</answer>
+
+        Output format:
+        {{
+        "grade": <grade>,
+        "feedback": <feedback>
+        }}
+        """
+    print(prompt)
     response = model.generate_content(prompt)
     print(response.text)  # This prints the correct JSON to the terminal
 

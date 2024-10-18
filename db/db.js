@@ -112,6 +112,12 @@ export const testSchema = new mongoose.Schema({
     duedate: {
         type: String, 
         required: true
+    },
+    gradingLevel: {
+        type: String,
+        enum: ['lenient', 'medium', 'hard'],
+        required: true,
+        default: 'medium' // Default grading level if not specified
     }
 }, { 
     timestamps: true 

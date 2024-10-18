@@ -8,9 +8,9 @@ import axios from 'axios';
 
 testRouter.post("/create-test", verifyToken, async (req, res) => {
     try {
-        const { title, questions, teamCode, duedate } = req.body;
+        const { title, questions, teamCode, duedate, gradingLevel } = req.body;
         const createdBy = req.body.admin._id;
-
+        const gradingLevel2 = gradingLevel.toLowerCase()
         let teamId = null;
         
         // If a teamCode is provided, find the team
@@ -30,13 +30,20 @@ testRouter.post("/create-test", verifyToken, async (req, res) => {
             return res.status(400).json({ message: "A valid array of questions is required." });
         }
 
+        // Validate the grading level
+        const validGradingLevels = ['lenient', 'medium', 'hard'];
+        if (!validGradingLevels.includes(gradingLevel2)) {
+            return res.status(400).json({ message: "Invalid grading level. It must be 'lenient', 'medium', or 'hard'." });
+        }
+
         // Create the test object with the provided data
         const newTest = new TestModel({
             title,
             questions, // questions should already be in the correct format (array of objects with 'question' field)
             createdBy,
             team: teamId || null, // Team ID is optional, only included if teamCode is provided
-            duedate
+            duedate,
+            gradingLevel2 // Include the grading level in the test data
         });
 
         // Save the new test document in the database
@@ -67,6 +74,7 @@ testRouter.post("/create-test", verifyToken, async (req, res) => {
         res.status(500).json({ message: "Failed to create test", error: error.message });
     }
 });
+
 
 
 testRouter.delete("/:id", verifyToken, async (req, res) => {
@@ -192,8 +200,7 @@ testRouter.post("/submit-answers", verifyToken, async (req, res) => {
     try {
         const { questions, title } = req.body;
         const user = req.body.user;
-        console.log(user)
-        
+
         if (!questions || !Array.isArray(questions) || questions.length === 0) {
             return res.status(400).json({ message: "No answers provided." });
         }
@@ -202,11 +209,22 @@ testRouter.post("/submit-answers", verifyToken, async (req, res) => {
             return res.status(400).json({ message: "Test title is required." });
         }
 
-        // Send questions to Python API for grading
+        // Find the test by its title to get the grading level
+        const test = await TestModel.findOne({ title });
+        if (!test) {
+            return res.status(404).json({ message: "Test not found with the provided title." });
+        }
+
+        const gradingLevel = test.gradingLevel;
+
+        // Send questions and gradingLevel to Python API for grading
         const pythonApiUrl = 'http://127.0.0.1:5000/grade'; // Replace with your actual Python API URL
         let gradedResponses;
         try {
-            const gradingResponse = await axios.post(pythonApiUrl, questions);
+            const gradingResponse = await axios.post(pythonApiUrl, {
+                questions,
+                gradingLevel
+            });
             gradedResponses = gradingResponse.data.graded_results;
         } catch (gradingError) {
             console.error("Error grading answers:", gradingError);
@@ -260,7 +278,8 @@ testRouter.post("/submit-answers", verifyToken, async (req, res) => {
         console.error("Error submitting answers:", error);
         res.status(500).json({ message: "Failed to submit answers", error: error.message });
     }
-})
+});
+
 
 const dynamicTestResponseSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -270,16 +289,13 @@ const dynamicTestResponseSchema = new mongoose.Schema({
 
 testRouter.post("/student-results", async (req, res) => {
     try {
-        console.log(req.body.body)
         const testName  = req.body.body.testName;
         const username = req.body.body.username; // Set by the verifyToken middleware
-        console.log(username, testName)
         // Find the user by username
         const user = await UserModel.findOne({ name: username });
         if (!user) {
             return res.status(401).json({ message: "Unauthorized. User not found." });
         }
-        console.log(user)
 
         // Convert test name to lowercase and replace spaces with underscores
         const formattedTestName = testName.toLowerCase().replace(/\s+/g, '_');
@@ -312,7 +328,7 @@ testRouter.post("/student-results", async (req, res) => {
             TestResponseModel = mongoose.model(modelName, responseSchema);
         }
 
-        console.log(TestResponseModel, user._id)
+
 
         // Find the user's response for this test using the userId
         const userResponse = await TestResponseModel.findOne({ userId: user._id });
@@ -332,6 +348,60 @@ testRouter.post("/student-results", async (req, res) => {
     } catch (error) {
         console.error("Error retrieving student results:", error);
         res.status(500).json({ message: "Failed to retrieve test results", error: error.message });
+    }
+});
+
+
+
+
+const responseSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    answers: [{
+        question: String,
+        answer: String,
+        grade: Number,
+        feedback: String
+    }],
+    totalGrade: Number
+});
+
+// Dynamic route to check test attempts
+testRouter.post("/check-attempt", verifyToken, async (req, res) => {
+    let { testName } = req.body;
+
+    const userId = req.body.user._id;
+
+    if (!testName || !userId) {
+        return res.status(400).json({ message: 'Test name and user ID are required.' });
+    }
+
+    try {
+        // Convert testName to lowercase and replace spaces with underscores
+        testName = testName.toLowerCase().replace(/\s+/g, '_');
+        
+        // Dynamically build the model name from the test name
+        const modelName = `${testName}_responses`;
+        
+        // Check if the model already exists
+        if (!mongoose.models[modelName]) {
+            // If it doesn't exist, create the model with the response schema
+            mongoose.model(modelName, responseSchema);
+        }
+        
+        // Retrieve the model
+        const TestResponse = mongoose.model(modelName);
+
+        // Check if there is a response with the given userId
+        const existingResponse = await TestResponse.findOne({ userId });
+        
+        if (existingResponse) {
+            return res.status(200).json({ message: 'You have already attempted the test.' });
+        } else {
+            return res.status(200).json({ message: 'You have not attempted the test yet.' });
+        }
+    } catch (error) {
+        console.error('Error checking test attempt:', error);
+        return res.status(500).json({ message: 'Internal server error.' });
     }
 });
 
