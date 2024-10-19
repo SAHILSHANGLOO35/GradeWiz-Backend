@@ -2,6 +2,8 @@ import { Router } from "express";
 const teamRouter = Router();
 import { TeamModel, UserModel } from "../db/db.js";
 import { verifyToken } from "../middlewares/auth.middlewares.js";
+import mongoose from 'mongoose';
+
 
 const generateUniqueCode = async () => {
     let code;
@@ -51,7 +53,6 @@ teamRouter.post("/create", verifyToken, async (req, res) => {
 
 teamRouter.post("/all-members", verifyToken, async (req, res) => {
     try {
-        console.log("allmembers api", req.body);
         const teamCode = req.body.teamCode; // This is the creationCode
 
         // Find the team using creationCode
@@ -75,7 +76,6 @@ teamRouter.post("/all-members", verifyToken, async (req, res) => {
             members: members // Return the fetched member details
         };
 
-        console.log(teamWithMembers, "line 71 @@@@");
 
         return res.status(200).json({
             message: "Team and members retrieved successfully",
@@ -86,6 +86,72 @@ teamRouter.post("/all-members", verifyToken, async (req, res) => {
         return res.status(500).json({ message: "Internal server error" });
     }
 });
+
+
+const responseSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    answers: [{
+        question: String,
+        answer: String,
+        grade: Number,
+        feedback: String
+    }],
+    totalGrade: Number
+});
+
+
+teamRouter.post("/all-members-with-marks", verifyToken, async (req, res) => {
+    try {
+        const { teamCode, title } = req.body; // Get teamCode and title from the request
+        console.log(teamCode, title)
+        // Find the team using creationCode
+        const team = await TeamModel.findOne({ 
+            creationCode: teamCode 
+        }).populate("teamMembers", "name email rollNo branch year");
+
+        if (!team) {
+            return res.status(404).json({ message: "No team found with this creation code." });
+        }
+
+        // Fetch details of all members from the Users collection based on member IDs
+        const members = await UserModel.find({
+            _id: { $in: team.teamMembers }
+        }).select("name email rollNo branch year");
+
+        console.log(members)
+
+        // For each member, fetch the marks for the specified test
+        const membersWithMarks = await Promise.all(members.map(async (member) => {
+            const modelName = `${title.replace(/\s+/g, '_').toLowerCase()}_responses`;
+            const TestResponseModel = mongoose.models[modelName] || mongoose.model(modelName, responseSchema);
+
+            // Find the user's response for the given test
+            const userResponse = await TestResponseModel.findOne({ userId: member._id });
+            console.log(userResponse)
+            return {
+                ...member.toObject(),
+                totalGrade: userResponse ? userResponse.totalGrade : null,
+                answers: userResponse ? userResponse.answers : null
+            };
+        }));
+
+        // Construct the response
+        const teamWithMembersAndMarks = {
+            teamName: team.teamName,
+            description: team.description,
+            members: membersWithMarks
+        };
+
+        return res.status(200).json({
+            message: "Team members and marks retrieved successfully",
+            team: teamWithMembersAndMarks,
+        });
+    } catch (error) {
+        console.error("Error retrieving members with marks:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+});
+
 
 
 teamRouter.delete("/remove-member", verifyToken, async (req, res) => {
