@@ -7,6 +7,7 @@ from flask_cors import CORS
 import json
 import re
 
+
 genai.configure(api_key="AIzaSyBr3I10MLWq4XLZL9s5xNoBpIc5LUykFLA")
 
 app = Flask(__name__)
@@ -15,8 +16,8 @@ CORS(app, origins=["*"])
 
 TMP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tmp') 
 
-model = genai.GenerativeModel("gemini-1.5-flash")
-
+question_model = genai.GenerativeModel("gemini-1.5-pro")
+checking_model = genai.GenerativeModel("gemini-1.5-flash")
 def summarize_pdf(pdf_path, prompt):
     # Initialize Groq client
 
@@ -27,12 +28,11 @@ def summarize_pdf(pdf_path, prompt):
     for page in reader.pages:
         full_text += page.extract_text()
 
-    # Create a prompt for summarization
-    # prompt = f"You are an expert at creating quizzes from text. Create 10 detailed answer questions from the following content:\n\n{full_text}"
 
-    prompt = f"{prompt}\n\n{full_text}"
 
-    response = model.generate_content(prompt)
+    prompt = f"CONTEXT: {full_text}\n\n{prompt}"
+
+    response = question_model.generate_content(prompt)
     
     return response.text
 
@@ -41,9 +41,8 @@ def summarize():
     # Get the prompt from the frontend
     prompt = request.form['prompt']
     
-    
     # Ensure the prompt requests JSON format
-    updated_prompt = f"{prompt} in JSON format"
+    updated_prompt = f'User Query: {prompt}.\n If the user asks for anything apart from generating questions, respond with: "Please provide a prompt specifically for generating questions only." else generate the questions according to the query and context given to you in json format only. Output format: [{{"question": question_1}},{{"question": question_2}}, ...]'
     print(updated_prompt)
 
     # Save the uploaded PDF file temporarily (if applicable)
@@ -173,11 +172,11 @@ def grade(context, question, answer, grading_level):
         }}
         """
     print(prompt)
-    response = model.generate_content(prompt)
+    response = checking_model.generate_content(prompt)
     print(response.text)  # This prints the correct JSON to the terminal
 
     return response.text
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)
