@@ -1,3 +1,4 @@
+import sys
 import os
 from flask import Flask, jsonify, request
 from PyPDF2 import PdfReader
@@ -5,10 +6,9 @@ import google.generativeai as genai
 from flask_cors import CORS
 import json
 import re
-from dotenv import load_dotenv
-load_dotenv()
 
-genai.configure(api_key=os.getenv("GEN_AI_API_KEY"))
+
+genai.configure(api_key="")
 
 app = Flask(__name__)
 
@@ -38,6 +38,7 @@ def summarize():
     
     # Ensure the prompt requests JSON format
     updated_prompt = f'User Query: {prompt}.\n If the user asks for anything apart from generating questions, respond with: "Please provide a prompt specifically for generating questions only." else generate the questions according to the query and context given to you in json format only. Output format: [{{"question": question_1}},{{"question": question_2}}, ...]'
+
 
     # Save the uploaded PDF file temporarily (if applicable)
     pdf_path = os.path.join(TMP_DIR, 'Intro_CN.pdf')
