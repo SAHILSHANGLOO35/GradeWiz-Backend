@@ -102,9 +102,7 @@ const responseSchema = new mongoose.Schema({
 
 teamRouter.post("/all-members-with-marks", verifyToken, async (req, res) => {
     try {
-        const { teamCode, title } = req.body; // Get teamCode and title from the request
-        console.log(teamCode, title)
-        // Find the team using creationCode
+        const { teamCode, title } = req.body;
         const team = await TeamModel.findOne({ 
             creationCode: teamCode 
         }).populate("teamMembers", "name email rollNo branch year");
@@ -118,8 +116,6 @@ teamRouter.post("/all-members-with-marks", verifyToken, async (req, res) => {
             _id: { $in: team.teamMembers }
         }).select("name email rollNo branch year");
 
-        console.log(members)
-
         // For each member, fetch the marks for the specified test
         const membersWithMarks = await Promise.all(members.map(async (member) => {
             const modelName = `${title.replace(/\s+/g, '_').toLowerCase()}_responses`;
@@ -127,7 +123,6 @@ teamRouter.post("/all-members-with-marks", verifyToken, async (req, res) => {
 
             // Find the user's response for the given test
             const userResponse = await TestResponseModel.findOne({ userId: member._id });
-            console.log(userResponse)
             return {
                 ...member.toObject(),
                 totalGrade: userResponse ? userResponse.totalGrade : null,

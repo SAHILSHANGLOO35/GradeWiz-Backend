@@ -1,4 +1,3 @@
-import sys
 import os
 from flask import Flask, jsonify, request
 from PyPDF2 import PdfReader
@@ -6,9 +5,10 @@ import google.generativeai as genai
 from flask_cors import CORS
 import json
 import re
+from dotenv import load_dotenv
+load_dotenv()
 
-
-genai.configure(api_key="AIzaSyBr3I10MLWq4XLZL9s5xNoBpIc5LUykFLA")
+genai.configure(api_key=os.getenv("GEN_AI_API_KEY"))
 
 app = Flask(__name__)
 
@@ -16,23 +16,18 @@ CORS(app, origins=["*"])
 
 TMP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tmp') 
 
-question_model = genai.GenerativeModel("gemini-1.5-pro")
-checking_model = genai.GenerativeModel("gemini-1.5-flash")
-def summarize_pdf(pdf_path, prompt):
-    # Initialize Groq client
+model = genai.GenerativeModel("gemini-2.0-flash")
 
-    # Open the PDF
+def summarize_pdf(pdf_path, prompt):
     reader = PdfReader(pdf_path)
 
     full_text = ""
     for page in reader.pages:
         full_text += page.extract_text()
 
-
-
     prompt = f"CONTEXT: {full_text}\n\n{prompt}"
 
-    response = question_model.generate_content(prompt)
+    response = model.generate_content(prompt)
     
     return response.text
 
@@ -43,7 +38,6 @@ def summarize():
     
     # Ensure the prompt requests JSON format
     updated_prompt = f'User Query: {prompt}.\n If the user asks for anything apart from generating questions, respond with: "Please provide a prompt specifically for generating questions only." else generate the questions according to the query and context given to you in json format only. Output format: [{{"question": question_1}},{{"question": question_2}}, ...]'
-    print(updated_prompt)
 
     # Save the uploaded PDF file temporarily (if applicable)
     pdf_path = os.path.join(TMP_DIR, 'Intro_CN.pdf')
@@ -52,7 +46,6 @@ def summarize():
     # Summarize the PDF
     try:
         summary = summarize_pdf(pdf_path, updated_prompt)
-        print(summary)
         return jsonify({"Questions": summary}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -60,7 +53,6 @@ def summarize():
 
 @app.route('/grade', methods=['POST'])
 def grade_questions():
-    print(request)
     if not request.is_json:
         return jsonify({"error": "Invalid JSON format"}), 400
     
@@ -69,7 +61,7 @@ def grade_questions():
     # Extract questions and grading level from the request
     questions = data.get("questions")
     grading_level = data.get("gradingLevel", "standard") 
-    print(grading_level) # Default to "standard" if not provided
+    print(grading_level)
 
     if not isinstance(questions, list) or len(questions) == 0:
         return jsonify({"error": "No questions provided or input format is incorrect"}), 400
@@ -171,10 +163,7 @@ def grade(context, question, answer, grading_level):
         "feedback": <feedback>
         }}
         """
-    print(prompt)
-    response = checking_model.generate_content(prompt)
-    print(response.text)  # This prints the correct JSON to the terminal
-
+    response = model.generate_content(prompt)
     return response.text
 
 

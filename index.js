@@ -11,9 +11,8 @@ import fetchTeamsRouter from "./routes/fetchTeams.routes.js"
 
 const app = express();
 
-app.use(cors()); // Enable CORS for all routes
-app.use(express.json()); // Parse JSON bodies
-
+app.use(cors());
+app.use(express.json());
 // Routes
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/admin", adminRouter);
@@ -22,7 +21,6 @@ app.use("/api/v1/join-team", joinTeamRouter);
 app.use("/api/v1/tests", testRouter);
 app.use("/api/v1/all-teams", fetchTeamsRouter);
 
-// MongoDB connection and server start
 async function main() {
     await mongoose.connect(process.env.MONGODB_URI)
     app.listen(process.env.PORT, () => {
